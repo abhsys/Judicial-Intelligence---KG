@@ -1,4 +1,0 @@
-fastapi
-neo4j
-python-dotenv
-uvicorn[standard]
