@@ -32,7 +32,7 @@ const clusterColor = (cluster, type) => {
   return "#5f6d8a";
 };
 
-export default function GraphViz({ data, height = 520, onNodeSelect }) {
+export default function GraphViz({ data, height = 520, onNodeSelect, backgroundColor = '#f6f8fc' }) {
   const fgRef = useRef();
   const [hoverNode, setHoverNode] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -78,7 +78,7 @@ export default function GraphViz({ data, height = 520, onNodeSelect }) {
         ref={fgRef}
         graphData={graph}
         height={height}
-        backgroundColor="#f6f8fc"
+        backgroundColor={backgroundColor}
         nodeRelSize={1}
         cooldownTicks={180}
         onNodeHover={(n) => setHoverNode(n || null)}

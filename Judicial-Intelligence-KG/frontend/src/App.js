@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import GraphViz from './components/GraphViz';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000';
 
 async function apiFetch(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -46,6 +46,15 @@ const GRAPH_NODE_STYLE = {
 };
 
 function App() {
+  const detectInitialTheme = () => {
+    const savedTheme = window.localStorage.getItem('ji_theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme;
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  };
+
+  const [theme, setTheme] = useState(detectInitialTheme);
   const [summary, setSummary] = useState(null);
   const [cases, setCases] = useState([]);
   const [totalCases, setTotalCases] = useState(0);
@@ -152,19 +161,33 @@ function App() {
     loadGraph();
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem('ji_theme', theme);
+  }, [theme]);
+
   const handleSearch = async (event) => {
     event.preventDefault();
     await loadCases(query);
   };
 
   return (
-    <div className="App">
+    <div className={`App theme-${theme}`}>
       <header className="app-header">
         <div>
+          <p className="eyebrow">Judicial Analytics</p>
           <h1>Judicial Intelligence Dashboard</h1>
           <p className="subtitle">Backend: {API_BASE_URL}</p>
         </div>
-        <button className="primary-btn" onClick={rebuildGraph}>Rebuild Graph</button>
+        <div className="header-actions">
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <button className="primary-btn" onClick={rebuildGraph}>Rebuild Graph</button>
+        </div>
       </header>
 
       {error && <div className="error-banner">{error}</div>}
@@ -172,7 +195,7 @@ function App() {
       <section className="summary-grid">
         {loadingSummary && <div className="card">Loading summary...</div>}
         {!loadingSummary && summaryCards.map((card) => (
-          <article className="card" key={card.label}>
+          <article className={`card card-${card.label.toLowerCase()}`} key={card.label}>
             <p className="card-label">{card.label}</p>
             <p className="card-value">{card.value}</p>
           </article>
@@ -180,7 +203,10 @@ function App() {
       </section>
 
       <main className="content-grid">
-        <section className="panel">
+        <section className="panel panel-cases">
+          <div className="panel-head">
+            <h2>Case Explorer</h2>
+          </div>
           <form className="search-row" onSubmit={handleSearch}>
             <input
               type="search"
@@ -190,6 +216,7 @@ function App() {
             />
             <button type="submit">Search</button>
           </form>
+          <p className="search-hint">Try: `WP/123/2026`, `Delhi High Court`, or party names.</p>
           <p className="muted">Showing {cases.length} of {totalCases} cases</p>
           <div className="table-wrap">
             <table>
@@ -218,7 +245,7 @@ function App() {
                       loadCaseDetails(item.case_key);
                       loadGraph(item.case_key);
                     }}
-                    className="row-clickable"
+                    className={`row-clickable ${selectedCase?.case_key === item.case_key ? 'row-selected' : ''}`}
                   >
                     <td>{item.case_key}</td>
                     <td>{item.courts?.[0] || '-'}</td>
@@ -230,7 +257,7 @@ function App() {
           </div>
         </section>
 
-        <section className="panel">
+        <section className="panel panel-details">
           <h2>Case Details</h2>
           {loadingDetails && <p>Loading case details...</p>}
           {!loadingDetails && !selectedCase && (
@@ -291,7 +318,11 @@ function App() {
         )}
         {!loadingGraph && graphData.node_count > 0 && (
           <div className="graph-canvas-wrap">
-            <GraphViz data={graphData} height={420} />
+            <GraphViz
+              data={graphData}
+              height={420}
+              backgroundColor={theme === 'dark' ? '#131e33' : '#f6f8fc'}
+            />
           </div>
         )}
         <div className="legend">

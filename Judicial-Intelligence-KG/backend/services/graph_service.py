@@ -1,11 +1,17 @@
 import os
 from typing import Any
+import logging
 
 from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
+
+
+class GraphUnavailableError(RuntimeError):
+    pass
 
 
 class GraphService:
@@ -15,13 +21,21 @@ class GraphService:
         self.password = os.getenv("NEO4J_PASSWORD", "password")
         self.database = os.getenv("NEO4J_DATABASE", "neo4j")
         self.driver = None
+        self.last_error: str | None = None
 
     def connect(self) -> None:
-        self.driver = GraphDatabase.driver(
-            self.uri, auth=(self.username, self.password)
-        )
-        # Fail fast at startup if DB config is wrong or DB is unreachable.
-        self.driver.verify_connectivity()
+        try:
+            self.driver = GraphDatabase.driver(
+                self.uri, auth=(self.username, self.password)
+            )
+            self.driver.verify_connectivity()
+            self.last_error = None
+        except Exception as exc:
+            self.last_error = str(exc)
+            logger.warning("Neo4j connection unavailable at startup: %s", exc)
+            if self.driver is not None:
+                self.driver.close()
+            self.driver = None
 
     def close(self) -> None:
         if self.driver is not None:
@@ -43,7 +57,12 @@ class GraphService:
         self, query: str, parameters: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
         if self.driver is None:
-            raise RuntimeError("Neo4j driver is not connected.")
+            message = (
+                f"Neo4j is not connected. Start Neo4j at {self.uri} and retry."
+            )
+            if self.last_error:
+                message += f" Details: {self.last_error}"
+            raise GraphUnavailableError(message)
 
         params = parameters or {}
         with self.driver.session(database=self.database) as session:

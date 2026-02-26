@@ -23,6 +23,9 @@ FILTERS_CLAUSE = """
 WHERE
     ($query = ""
         OR toLower(c.case_key) CONTAINS toLower($query)
+        OR replace(replace(replace(toLower(c.case_key), "/", ""), "-", ""), " ", "")
+           CONTAINS replace(replace(replace(toLower($query), "/", ""), "-", ""), " ", "")
+        OR toLower(coalesce(c.case_reference, "")) CONTAINS toLower($query)
         OR any(name IN petitioners WHERE toLower(name) CONTAINS toLower($query))
         OR any(name IN respondents WHERE toLower(name) CONTAINS toLower($query))
         OR any(name IN courts WHERE toLower(name) CONTAINS toLower($query)))

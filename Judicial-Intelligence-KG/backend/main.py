@@ -2,18 +2,22 @@ import os
 
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 try:
     from .routers.search import router as search_router
     from .routers.upload import router as graph_router
     from .services.extractor import GraphExtractor
     from .services.graph_service import GraphService
+    from .services.graph_service import GraphUnavailableError
 except ImportError:
     from routers.search import router as search_router
     from routers.upload import router as graph_router
     from services.extractor import GraphExtractor
     from services.graph_service import GraphService
+    from services.graph_service import GraphUnavailableError
 
 app = FastAPI(title="Judicial Intelligence KG API")
 graph_service = GraphService()
@@ -43,6 +47,13 @@ app.add_middleware(
 
 app.include_router(search_router)
 app.include_router(graph_router)
+
+
+@app.exception_handler(GraphUnavailableError)
+async def graph_unavailable_handler(
+    request: Request, exc: GraphUnavailableError
+) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
 @app.on_event("startup")
