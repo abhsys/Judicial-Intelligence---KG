@@ -1,5 +1,4 @@
 import os
-
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +27,8 @@ except ImportError:
     from services.upload_graph_service import UploadGraphService
 
 app = FastAPI(title="Judicial Intelligence KG API")
+
+# Services
 graph_service = GraphService()
 extractor = GraphExtractor(graph_service)
 job_store = JobStore()
@@ -40,6 +41,7 @@ upload_graph_service = UploadGraphService(
     search_service=indiankanoon_service,
 )
 
+# ==================== CORS CONFIGURATION ====================
 default_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -48,26 +50,31 @@ default_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
 origins_env = os.getenv("CORS_ALLOW_ORIGINS", "")
 configured_origins = [
     item.strip() for item in origins_env.split(",") if item.strip()
 ] or default_origins
+
 allow_all_origins = "*" in configured_origins
+
+# Always allow your Vercel frontend + all configured origins
+final_origins = ["https://caselinqkg.vercel.app"] + configured_origins
+final_origins = list(dict.fromkeys(final_origins))  # remove duplicates
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://caselinqkg.vercel.app"
-    ],
+    allow_origins=["*"] if allow_all_origins else final_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ============================================================
 
+# Include routers
 app.include_router(search_router)
 app.include_router(graph_router)
 app.include_router(intake_router)
-
 
 @app.on_event("startup")
 def startup_event() -> None:
@@ -79,21 +86,18 @@ def startup_event() -> None:
     app.state.upload_graph_service = upload_graph_service
     app.state.indiankanoon_service = indiankanoon_service
 
-
 @app.on_event("shutdown")
 def shutdown_event() -> None:
     graph_service.close()
 
-
+# Health checks
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
-
 @app.get("/api/health")
 def api_health() -> dict[str, str]:
     return health()
-
 
 @app.get("/health/db")
 def health_db() -> dict[str, str]:
@@ -101,23 +105,20 @@ def health_db() -> dict[str, str]:
         raise HTTPException(status_code=503, detail="Neo4j is not reachable.")
     return {"status": "ok"}
 
-
 @app.get("/api/health/db")
 def api_health_db() -> dict[str, str]:
     return health_db()
 
-
+# Public endpoints
 @app.get("/cases")
 def get_cases(limit: int = 10) -> dict[str, object]:
     label = "Case"
     rows = graph_service.get_nodes_by_label(label=label, limit=limit)
     return {"label": label, "count": len(rows), "data": rows}
 
-
 @app.post("/graph/build")
 def build_graph() -> dict[str, int | str]:
     return extractor.build_case_graph()
-
 
 @app.get("/graph/summary")
 def graph_summary() -> dict[str, int]:
