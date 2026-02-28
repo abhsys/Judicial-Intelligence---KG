@@ -9,7 +9,7 @@ import {
   uploadCaseFile,
 } from './api';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://caselinq.onrender.com';
 const HISTORY_STORAGE_KEY = 'ji_graph_history_v1';
 
 async function apiFetch(path, options = {}) {
