@@ -63,7 +63,7 @@ class LiveMetricsService:
                 end_utc=yesterday_end,
             )
             item["count"] = y_count
-            item["rolling_3d_count"] = 0
+            item["rolling_3d_count"] = None
             item["using_rolling_hint"] = False
             if y_count == 0:
                 rolling_start = yesterday_start - timedelta(days=2)
@@ -73,7 +73,7 @@ class LiveMetricsService:
                     end_utc=yesterday_end,
                 )
                 item["rolling_3d_count"] = rolling_count
-                item["using_rolling_hint"] = rolling_count > 0
+                item["using_rolling_hint"] = isinstance(rolling_count, int) and rolling_count > 0
 
         payload = {
             "date_range": f"{start_label} to {end_label}",
@@ -95,7 +95,7 @@ class LiveMetricsService:
         query: str,
         start_utc: datetime,
         end_utc: datetime,
-    ) -> int:
+    ) -> int | None:
         params = {
             "query": query,
             "mode": "ArtList",
@@ -116,7 +116,7 @@ class LiveMetricsService:
             return len(articles)
         except Exception as exc:
             self.logger.warning("Live metrics query failed for '%s': %s", query, exc)
-            return 0
+            return None
 
     def _yesterday_window_utc(self) -> tuple[datetime, datetime]:
         now = datetime.now(timezone.utc)
