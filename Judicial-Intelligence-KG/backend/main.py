@@ -56,7 +56,9 @@ allow_all_origins = "*" in configured_origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if allow_all_origins else configured_origins,
+    allow_origins=[
+        "https://caselinqkg.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
