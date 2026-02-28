@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/intake", tags=["intake"])
 logger = logging.getLogger("intake_pipeline")
 
 
-@router.post("/upload")
+@router.post("https://caselinq.onrender.com/upload")
 async def intake_upload(request: Request, file: UploadFile = File(...)) -> dict[str, str]:
     if not file.filename:
         raise HTTPException(status_code=400, detail="Uploaded file must include a filename.")
