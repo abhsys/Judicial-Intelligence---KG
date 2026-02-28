@@ -1,0 +1,10 @@
+fastapi
+neo4j
+python-dotenv
+uvicorn[standard]
+httpx
+beautifulsoup4
+pypdf
+google-generativeai
+tenacity
+python-multipart
