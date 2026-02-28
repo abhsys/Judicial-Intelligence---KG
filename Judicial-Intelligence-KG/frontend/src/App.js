@@ -305,17 +305,20 @@ function App() {
 
     const byId = new Map(summary.metrics.map((item) => [item.id, item]));
     const withHint = (id, label, className) => {
-      const metric = byId.get(id) || {};
-      const count = Number(metric.count || 0);
-      const rolling = Number(metric.rolling_3d_count || 0);
-      const hint = count === 0 && rolling > 0 ? `3-day rolling signal: ${rolling}` : '';
-      return {
-        label,
-        value: count,
-        className,
-        hint,
-      };
-    };
+    const metric = byId.get(id) || {};
+    const count = typeof metric.count === 'number' ? metric.count : null;
+    const rolling = typeof metric.rolling_3d_count === 'number' ? metric.rolling_3d_count : null;
+    const hint = count === 0 && typeof rolling === 'number' && rolling > 0
+    ? `3-day rolling signal: ${rolling}`
+    : '';
+    return {
+    label,
+    value: count === null ? '-' : count,
+    className,
+    hint,
+  };
+};
+
     return [
       withHint('appeared_yesterday', 'Appeared Yesterday', 'card-cases'),
       withHint('resolved_yesterday', 'Resolved Yesterday', 'card-courts'),
